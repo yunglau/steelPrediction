@@ -22,6 +22,8 @@ Among possible ideas:
     
   We achieved short range prediction with good accuracy but our model fall short of prediction capability quite fast.
   Time was spend on gathering open data that can be found in our repository, building the neural network and training them.
+  
+![](Images/Presentation%20(1).png)
     
 ## Work possible flows:
 
@@ -39,7 +41,7 @@ Among possible ideas:
     -
     
 
-## Model technical details
+Model technical details
      
    LSTM
      
