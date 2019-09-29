@@ -1,4 +1,4 @@
-# How to make a money printing machine in one night.
+# How to make a money printing machine in one night
 
 We implemented for the ImplementAI 2019 event 2 predictive algorithm for steel prices.
 Those projet were suggested by Hatch company, which provided important insights on the steel markets.
