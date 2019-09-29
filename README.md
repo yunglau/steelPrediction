@@ -1,10 +1,7 @@
 # How to make a money printing machine in one night! (And some AI research)
 
-How can we use neural networks models to modelise dynamic systems with strong noise and few available data? 
-We tackled innovatively such problem at the ImplementAI 2019, 24h hackathon. Our answer provide possible ideas for predicting steel prices but also a range of other dynamics problems.
-
-We implemented 2 predictive algorithm for steel prices.
-The projet was suggested by Hatch company, which provided important insights on the steel markets and ideas on how to approach the problem.
+We implemented for the ImplementAI 2019 event (24h) 2 predictive algorithm for steel prices.
+Those projet were suggested by Hatch company, which provided important insights on the steel markets and idea on how to approach the problem.
 
 We used LSTM based neural network and ODEnet (Chen, R.~T.~Q., Rubanova, Y., Bettencourt, J., et al. 2018, arXiv e-prints, arXiv:1806.07366). To the best of our knowledge, latter approach was never used in commodity prediction.
 The Odenet implementation takes great advantage on Chen's implementation, which can be found here: https://github.com/rtqichen/torchdiffeq.
@@ -39,12 +36,12 @@ Among possible ideas:
 ## Features technical details
 
   The feature used were:
-    -
-    -
-    -
-    -
-    -
-    
+    -ODEnet
+    -Tensor Flow
+    -PyTorch
+    -Python
+    -Pandas
+    -Matpotlib
 
 Model technical details
      
