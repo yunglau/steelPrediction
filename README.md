@@ -6,6 +6,8 @@ Those projet were suggested by Hatch company, which provided important insights 
 We used LSTM based neural network and ODEnet (Chen, R.~T.~Q., Rubanova, Y., Bettencourt, J., et al. 2018, arXiv e-prints, arXiv:1806.07366). To the best of our knowledge, latter approach was never used in commodity prediction.
 The Odenet implementation takes great advantage on Chen's implementation, which can be found here: https://github.com/rtqichen/torchdiffeq.
 
+Slide presentation of the project can be found here.: https://docs.google.com/presentation/d/1FsUdv_kAHwdzve9rk5hF9dO3xEJEik417lr_7of9uAQ/edit?usp=sharing
+
 ## Project objectives
   
   The goal was to create model able to predict steel prices evolution over on long time range.
