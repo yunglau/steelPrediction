@@ -10,7 +10,7 @@ The Odenet implementation takes great advantage on Chen's implementation, which 
   
   The goal was to create model able to predict steel prices evolution over on long time range.
   As have demonstrated our first observations, standard linear models for such financial evolutions are poorly performing.
-  Due to time constraints we focus on gathering 9 main analytics and built too neural network predictive model out of them.
+  Due to time constraints we focus on gathering 9 main analytics and built two neural network predictive model out of them.
     
 ## Results
     
@@ -26,11 +26,11 @@ The Odenet implementation takes great advantage on Chen's implementation, which 
 
 ## Model technical details
      
-   LSTM
+## LSTM
      
      
      
-   ODEnet based model:
+## ODEnet based model:
 The network is composed of three network structured similarly than an autoencoder.
 A first network, the encoder, is in charge of smmarizing the past information in a condensed representation.
 This reprenzation is used by an ODEnet. This neural network approximate the derivative of its input with respect to the time. Using this derivative an ODEsolver builds, starting from the condensed representation, a new reprensation for every input time. It then extend it prediction to unseen data. Finally a decoder, a simple feed-forward neural network, moves these representation back to their initial representation spaces.
