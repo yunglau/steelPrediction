@@ -55,7 +55,7 @@ Optimisation scheme is Adam, also inspired from "Neural Ordinary Differential Eq
 
 Team: Elaine Lau, Ying Yang, Hector Perez Hoffman, Pierre Orhan
 
-We would like to thank the ImplementAI2019 team, as well as sponsors.
+We would like to thank the ImplementAI2019 team, as well as sponsors: Hatch, Coveo, NBC, Wrnch, Samasource,CEA.
 
 
 
