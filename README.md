@@ -12,7 +12,7 @@ The Odenet implementation takes great advantage on Chen's implementation, which 
   As have demonstrated our first observations, standard linear models for such financial evolutions are poorly performing.
   Due to time constraints we focus on gathering 9 main analytics and built too neural network predictive model out of them.
   
-  Despite the relative narrow range of the model application, their is powerful extension one can make out of the proof of concept of using ODEnet for predictions on complex dynamics.
+  Despite the relative narrow range of the model application, there is powerful extension one can make out of the proof of concept of using ODEnet for predictions on complex dynamics.
 Among possible ideas:
   - prediction of behaviors of set of molecular reactions (molecular engineering).
   - new approach to climate modeling.
