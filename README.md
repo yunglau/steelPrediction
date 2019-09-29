@@ -14,9 +14,9 @@ The Odenet implementation takes great advantage on Chen's implementation, which 
   
   Despite the relative narrow range of the model application, their is powerful extension one can make out of the proof of concept of using ODEnet for predictions on complex dynamics.
 Among possible ideas:
-  - prediction of set of molecular reactions effect.
+  - prediction of behaviors of set of molecular reactions (molecular engineering).
   - new approach to climate modeling.
-  - 
+  - application to other markets.
     
 ## Results
     
