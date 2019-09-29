@@ -39,7 +39,7 @@ Among possible ideas:
     -
     
 
-Model technical details
+## Model technical details
      
    LSTM
      
