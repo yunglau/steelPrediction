@@ -43,7 +43,7 @@ Model technical details
      
    LSTM
      
-     
+![](images/ODEnet.jpg)
      
    ODEnet based model:
 The network is composed of three network structured similarly than an autoencoder.
