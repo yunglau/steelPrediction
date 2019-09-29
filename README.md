@@ -3,7 +3,7 @@
 We implemented for the ImplementAI 2019 event (24h) 2 predictive algorithm for steel prices.
 Those projet were suggested by Hatch company, which provided important insights on the steel markets and idea on how to approach the problem.
 
-We used LSTM based neural network and ODEnet (Chen, R.~T.~Q., Rubanova, Y., Bettencourt, J., et al. 2018, arXiv e-prints, arXiv:1806.07366). To the best of our knowledge, later approach was never used in commodity prediction.
+We used LSTM based neural network and ODEnet (Chen, R.~T.~Q., Rubanova, Y., Bettencourt, J., et al. 2018, arXiv e-prints, arXiv:1806.07366). To the best of our knowledge, latter approach was never used in commodity prediction.
 The Odenet implementation takes great advantage on Chen's implementation, which can be found here: https://github.com/rtqichen/torchdiffeq.
 
 ## Project objectives
