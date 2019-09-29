@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-
+import random
 from OdenetModel.torchdiffeq import odeint_adjoint as odeint
 import logging
 import os
@@ -115,6 +115,7 @@ class ODEfunc(nn.Module):
         for i in range(self.nbLayer-1):
             self.fcs += [nn.Linear(self.hidden_dims[i],self.hidden_dims[i+1])]
         self.fcs = nn.ModuleList(self.fcs)
+        nn.init.constant_(self.fcs[-1].weight,0) # We initialize our last layer at 0 so that the initial derivative is identity!
         self.non_linearity = nn.Tanh()
 
     def forward(self, t, x):
@@ -131,9 +132,10 @@ class ODEfunc(nn.Module):
         # increment counter
         self.nfe += 1
         out = x
-        for layer in self.fcs:
+        for idx,layer in enumerate(self.fcs):
             out = layer(out)
-            out = self.non_linearity(out)
+            if idx!=len(self.fcs)-1:
+                out = self.non_linearity(out)
         return out
 
 
@@ -141,14 +143,14 @@ class ODEBlock(nn.Module):
     def __init__(self, odefunc, rtol, atol, integration_time):
         super(ODEBlock, self).__init__()
         self.odefunc = odefunc
-        self.integration_time = torch.from_numpy(integration_time).float()
+        self.integration_time = torch.from_numpy(integration_time).float().to(device)
         #HERE DEFINE INFERENCE TIMES
         #Should be updated depending on the inference time we are trying to make!
         self.rtol = rtol
         self.atol = atol
     def forward(self, x):
         self.integration_time = self.integration_time.type_as(x)
-        out = odeint(self.odefunc, x, self.integration_time, rtol=self.rtol, atol=self.atol)
+        out = odeint(self.odefunc, x, self.integration_time) #, rtol=self.rtol, atol=self.atol
         return out
     @property
     def nfe(self):
@@ -157,54 +159,66 @@ class ODEBlock(nn.Module):
     def nfe(self, value):
         self.odefunc.nfe = value
 
+def get_batch(data_size,batch_time,batch_size,true_y,t):
+    s = torch.from_numpy(np.random.choice(np.arange(data_size - batch_time, dtype=np.int64), batch_size, replace=False)).to(device)
+    batch_y0 = true_y[s]  # (M, D)
+    batch_t = t[:batch_time]  # (T)
+    batch_y = torch.stack([true_y[s + i] for i in range(batch_time)], dim=0)  # (T, M, D)
+    return batch_y0, batch_t, batch_y
+
+
 if __name__ == '__main__':
     #Creation of simple train dataset:
-    inputTime = np.arange(0,1000)
-    nbrBatches = 100
+    data_size=1000
+    inputTime = np.array(np.arange(0,100,100/data_size),dtype=np.float32)
+    nbrBatches = 10
     nbrSteps = np.random.randint(5,10,nbrBatches) #For real: nbrsteps-1
     Us = []
     Vs = []
     Xs = []
     splits= []
     for i in range(nbrBatches):
-        splits += [np.concatenate((np.array([0]),np.sort(np.unique((np.random.randint(0,1000,nbrSteps[i]-2)))),np.array([1000])))]
+        newRange = np.sort(np.array(random.sample(range(0,100,10),nbrSteps[i]-2)))
+        while 0 in newRange:
+            newRange =np.sort(np.array(random.sample(range(0,100,10),nbrSteps[i]-2)))
+        splits += [np.concatenate((np.array([0]),newRange,np.array([100])))]
         Us+=[sDO.getU(inputTime,splits[-1])]
         Vs+=[sDO.getV(inputTime,Us[-1])]
         Xs+=[np.stack((Us[-1],Vs[-1]),axis=1)]
-
-
     #creation of test dataset: we switch a little bit the input:
-    UnwantedEventTest = [0,100,200,400,700,1000]
-    U_test = sDO.getU(inputTime,itv=[0,100,200,400,700,1000])
+    UnwantedEventTest = [0,10,20,40,70,100]
+    U_test = sDO.getU(inputTime,itv=[0,10,20,40,70,100])
     V_test = sDO.getV(inputTime,U_test)
     X_test = np.stack((U_test,V_test),axis=1)
-
 
     print("Initial data shape:",X_test.shape)
     path = ""
     #logger
     logger = get_logger(logpath=os.path.join(path, 'logs'), filepath=os.path.abspath(__file__))
-
     #device creation
     device = torch.device('cuda:' + str(0) if torch.cuda.is_available() else 'cpu')
-
+    print("Running on GPU? ",torch.cuda.is_available())
     #hyperparameters
     #network hyperparameters
     input_dim = 2
-    nbLayer = 10
-    hidden_dims = [10 for n in range(nbLayer)]
-    hidden_dims[-1] = input_dim
-    augment_dim= 0
+    nbLayer = 3
+    hidden_dims = [100 for n in range(nbLayer)]
+    augment_dim= 2
+    hidden_dims[-1] = input_dim + augment_dim
+
     time_dependent = False
     rtol = 10**(-6)
     atol =  10**(-3)
     #training hyperparameters
     batches_per_epoch = nbrBatches #Nbr of available batches
-    lr = 0.01
+    lr = 0.1
     nepochs = 10
-    batch_size = 1
-
-    feature_layers = [ODEBlock(ODEfunc(input_dim,hidden_dims,nbLayer,augment_dim,time_dependent),rtol,atol,inputTime)]
+    batch_size = 20
+    batch_time = 10
+    mini_batch_size = 20
+    gradientSparsity = 0.1
+    integration_time = np.arange(0,10,1)
+    feature_layers = [ODEBlock(ODEfunc(input_dim,hidden_dims,nbLayer,augment_dim,time_dependent),rtol,atol,integration_time)]
 
     model = nn.Sequential(*feature_layers).to(device)
 
@@ -212,7 +226,6 @@ if __name__ == '__main__':
     logger.info('Number of parameters: {}'.format(count_parameters(model)))
 
     criterion = nn.MSELoss().to(device)
-
     optimizer = torch.optim.SGD(model.parameters(), lr = 0.01, momentum=0.9)
 
     best_loss = -1
@@ -226,34 +239,56 @@ if __name__ == '__main__':
         decay_rates=[1, 0.1, 0.01, 0.001], lr= lr
     )
 
-    print("MODEL BUILT, Starting training")
-    X_train = torch.from_numpy(np.array(Xs)).to(device)
+    print("MODEL BUILT, Moving data set to device")
+    #First need to add to the input the additional freedom degree:
+    Xs = np.array(Xs)
+    freedom = np.zeros(list(Xs.shape[:-1])+[2])
+    Xs = np.concatenate((Xs,freedom),axis=-1)
+    X_train = torch.from_numpy(np.array(Xs,dtype=np.float32)).to(device)
+
+    X_test = np.array(X_test)
+    freedom = np.zeros(list(X_test.shape[:-1])+[2])
+    X_test = np.concatenate((X_test,freedom),axis=-1)
+    X_test_torch = torch.from_numpy(np.array(X_test,dtype=np.float32)).to(device)
+
     print("Data loaded on GPU, starting inference")
     for itr in range(nepochs * batches_per_epoch):
         batch_Idx = int( itr / batches_per_epoch )
+        batch_itr = itr % batches_per_epoch
         for param_group in optimizer.param_groups:
             param_group['lr'] = lr_fn(itr)
         optimizer.zero_grad()
-        #For every time range between perturbations:
-        # we ask the model to predict the system  evolutions on this time range.
-        # We store the output and start from scratch with different updated initial values
-        # The model will progressively learns the real system dynamic without being able to predict "Uncorelated perturbations...."
-        # Doing this over many different time ranges enable model to memorize effect of various instantaneous perturbations
-        mini_logits = []
-        for idx,init in enumerate(splits[itr][:-1]):
-            x = X_train[itr][init] #,torch.from_numpy(Xs[itr][init:splits[itr][idx+1]])
-            #Predict the system at all time step before another perturbation!
-            x = x.to(device)
-            #Update of the range on which the ODEsolver should be ran
-            feature_layers[0].integration_time = torch.from_numpy(np.arange(init,splits[itr][idx+1])).float().to(device)
-            mini_logits += [model(x)]
-        logits = torch.cat(mini_logits,0)
-        Y = X_train[itr]
-        loss = criterion(logits, Y)
 
+        # mini_logits = []
+        # mini_output = []
+        # out = X_train[batch_itr][0].detach()
         nfe_forward = feature_layers[0].nfe
         feature_layers[0].nfe = 0
-        print("Starting loss backward")
+        #feature_layers[0].integration_time = torch.from_numpy(np.arange(0,10,1)).to(device)
+        # for idx,init in enumerate(splits[batch_itr][:-1]):
+        #     optimizer.zero_grad()
+        #     x = out
+        #     x[0] = X_train[batch_itr][0,0] # !!PERTURBATION!!! ==> only on one value here, other one remains the previous value
+        #     #,torch.from_numpy(Xs[itr][init:splits[itr][idx+1]])
+        #     #Predict the system at all time step before another perturbation!
+        #     x = x.to(device)
+        #     #Update of the range on which the ODEsolver should be ran
+        #     #max(int(gradientSparsity*(splits[batch_itr][idx+1]-init)),1)
+        #     newRange = np.sort(np.array(random.sample(range(init,splits[batch_itr][idx+1],1),10)))
+        #     feature_layers[0].integration_time = torch.from_numpy(newRange).float().to(device)
+        #     mini_logits += [model(x)] #No backprop on free values
+        #     mini_output += [X_train[batch_itr][newRange,:input_dim]]
+        #     loss = criterion(mini_logits[-1][:,:input_dim],mini_output[-1])
+        #     print("starting backward")
+        #     loss.backward()
+        #     print("starting opti")
+        #     optimizer.step()
+        #     print("ended opti")
+        #     out = mini_logits[-1][-1].detach()
+        batch_y0, batch_t, batch_y = get_batch(data_size,batch_time,mini_batch_size,X_train[batch_itr],inputTime)
+        feature_layers[0].integration_time = torch.from_numpy(batch_t).float().to(device)
+        pred_y = model(batch_y0)
+        loss = criterion(pred_y[:,:,:input_dim],batch_y[:,:,:input_dim])
         loss.backward()
         optimizer.step()
 
@@ -263,24 +298,24 @@ if __name__ == '__main__':
         f_nfe_meter.update(nfe_forward)
         b_nfe_meter.update(nfe_backward)
         end = time.time()
-        print("==========Next itr===========")
+        print("===== ITERATION ===== ",itr," last loss",loss)
         if itr % batches_per_epoch == 0:
             with torch.no_grad():
                 train_loss = loss
-                #Test loss is against one the splittest
+
                 mini_logits_test =[]
-                for idx,init in enumerate(UnwantedEventTest):
-                    x, y = torch.from_numpy(X_test[init]),torch.from_numpy(X_test[init:UnwantedEventTest[idx+1]])
+                for idx,init in enumerate(UnwantedEventTest[:-1]):
+                    x = X_test_torch[init]
                     #Predict the system at all time step before another perturbation!
                     x = x.to(device)
                     #Update of the range on which the ODEsolver should be ran
-                    feature_layers[0].integration_time = torch.from_numpy(np.arange(init,UnwantedEventTest[idx+1])).float().to(device)
-                    mini_logits_test += [model(x)]
+                    feature_layers[0].integration_time = torch.from_numpy(np.arange(init,UnwantedEventTest[idx+1],0.1)).float().to(device)
+                    mini_logits_test += [model(x)[:,:input_dim]]
                 logits_test = torch.cat(mini_logits_test)
-                y_test = torch.from_numpy(X_test).to(device)
+                y_test = X_test_torch[:,:input_dim]
                 test_loss = criterion(logits_test, y_test) #todo
 
-                if best_loss > test_loss:
+                if best_loss > test_loss or best_loss==-1:
                     torch.save({'state_dict': model.state_dict()}, os.path.join(path, 'model.pth'))
                     best_loss = test_loss
                 logger.info(
@@ -290,31 +325,38 @@ if __name__ == '__main__':
                         b_nfe_meter.avg, train_loss, test_loss
                     )
                 )
-
-    x_test, y_test = torch.from_numpy(X_test[:-1]),torch.from_numpy(X_test[1:]) #The prediction should be the value at next time step!
-    x_test = x_test.to(device)
-    y_test = y_test.to(device)
-    logits_test = model(x_test)
-    Vpred_test = logits_test.cpu().detach().numpy()[:,1]
+    #Train example:
+    batch_y0, batch_t, batch_y = get_batch(data_size,batch_time,mini_batch_size,X_train[-1],inputTime)
+    feature_layers[0].integration_time = torch.from_numpy(batch_t).float().to(device)
+    pred_V = model(batch_y0)[:,0,1].cpu().detach().numpy()
+    timeArray = batch_t
+    true_V = batch_y[:,0,1].cpu().detach().numpy()
+    true_U = batch_y[:,0,0].cpu().detach().numpy()
+    import matplotlib.pyplot as plt
+    fig = plt.figure()
+    plt.plot(timeArray,true_U,c="r")
+    plt.plot(timeArray,true_V,c="g")
+    plt.plot(timeArray,pred_V,c="b")
+    plt.show()
+    fig.savefig("predTrainSet.png")
 
     mini_logits_test =[]
-    for idx,init in enumerate(UnwantedEventTest):
-        x, y = torch.from_numpy(X_test[init]),torch.from_numpy(X_test[init:UnwantedEventTest[idx+1]])
+    for idx,init in enumerate(UnwantedEventTest[:-1]):
+        x, y = X_test_torch[init],X_test_torch[init:UnwantedEventTest[idx+1]]
         #Predict the system at all time step before another perturbation!
         x = x.to(device)
         #Update of the range on which the ODEsolver should be ran
-        feature_layers[0].integration_time = torch.from_numpy(np.arange(init,UnwantedEventTest[idx+1])).float().to(device)
-        mini_logits_test += [model(x)]
+        feature_layers[0].integration_time = torch.from_numpy(np.arange(init,UnwantedEventTest[idx+1],0.1)).float().to(device)
+        mini_logits_test += [model(x)[:,:input_dim]]
     logits_test = torch.cat(mini_logits_test)
-    y_test = torch.from_numpy(X_test).to(device)
-
+    y_test = X_test_torch[:input_dim]
     Vpred_test = logits_test.cpu().detach().numpy()[:,1]
 
     import matplotlib.pyplot as plt
     fig = plt.figure()
-    plt.plot(inputTime[:-1],U_test[:-1],c="r")
-    plt.plot(inputTime[:-1],V_test[:-1],c="g")
-    plt.plot(inputTime[:-1],Vpred_test,c="b")
+    plt.plot(inputTime,U_test,c="r")
+    plt.plot(inputTime,V_test,c="g")
+    plt.plot(inputTime,Vpred_test,c="b")
     plt.show()
     fig.savefig("predTestSet.png")
 

@@ -10,8 +10,8 @@ def getU(time,itv = [0,100,200,400,600,1000]):
             u[itv[idx]:itv[idx+1]] = 1
     return u
 
-kappa = 0.5
-eta = 0.2
+kappa = 6
+eta = 1
 
 def g(t):
     if t>=1000:
@@ -27,8 +27,8 @@ def getV(time,u):
     return np.array(V[:,0],dtype=np.float32)
 
 if __name__ == '__main__':
-    time = np.arange(1000)
-    U = getU(time)
+    time = np.arange(100)
+    U = getU(time,itv = [0,10,20,40,60,100])
     V = getV(time,U)
     print(U.shape)
     print(V.shape)
