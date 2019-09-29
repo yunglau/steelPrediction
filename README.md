@@ -6,7 +6,7 @@ Those projet were suggested by Hatch company, which provided important insights 
 We used LSTM based neural network and ODEnet (Chen, R.~T.~Q., Rubanova, Y., Bettencourt, J., et al. 2018, arXiv e-prints, arXiv:1806.07366). To the best of our knowledge, later approach was never used in commidity prediction.
 The Odenet implementation takes great advantage on Chen's implementation, which can be found here: https://github.com/rtqichen/torchdiffeq.
 
-Project objectives
+## Project objectives
   
   The goal was to create model able to predict steel prices evolution over on long time range.
   As have demonstrated our first observations, standard linear models for such financial evolutions are poorly performing.
@@ -18,18 +18,18 @@ Among possible ideas:
   - new approach to climate modeling.
   - 
     
-Results
+## Results
     
   We achieved short range prediction with good accuracy but our model fall short of prediction capability quite fast.
   Time was spend on gathering open data that can be found in our repository, building the neural network and training them.
     
-Work possible flows:
+## Work possible flows:
 
   While this work initiates some novel approach in tackling financial noisy time series data, it does lack a second analysis that we would have loved to put in place. Indeed it would have been interesting to look at the effect of sudden important variation in one of the feature. Our prediction is that the Odenet, approximating in a sense the real network dynamic, could highlights interesting analytical effects to this regard. 
    
   We also raise the concern that different approach could have been adopted. Network architecture as: Boltzmann machines are particularly efficient for reprensint interactions between multiple time series (here our selected features). Such tool were introduced a by Hinton : http://www.scholarpedia.org/article/Boltzmann_machine, and could have been of relevancy in such project.
     
-Features technical details
+## Features technical details
 
   The feature used were:
     -
